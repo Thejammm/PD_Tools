@@ -11,8 +11,8 @@ services:
     plan: free
     region: frankfurt
     rootDir: backend
-    buildCommand: npm install && npm run migrate
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: npm run migrate && npm start
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
