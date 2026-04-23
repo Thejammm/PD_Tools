@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PD Scope Determination Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#f5f6fa;--card:#fff;--primary:#1a5276;--primary-light:#2980b9;
+--accent:#e67e22;--text:#2c3e50;--text-light:#7f8c8d;--border:#dce1e8;
+--green:#27ae60;--green-bg:#eafaf1;--red:#e74c3c;--red-bg:#fdf2f1;
+--amber:#f39c12;--amber-bg:#fef9e7;--blue-bg:#eaf2f8;
+}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:24px 30px;margin-bottom:0}
+.header h1{font-size:22px;margin-bottom:4px}
+.header p{font-size:13px;opacity:.9}
+
+/* PROGRESS BAR */
+.progress-shell{background:#fff;border-bottom:1px solid var(--border);padding:16px 30px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.progress-steps{display:flex;gap:4px;max-width:1200px;margin:0 auto}
+.progress-step{flex:1;text-align:center;position:relative;cursor:pointer}
+.progress-step .step-num{width:32px;height:32px;border-radius:50%;background:var(--border);color:var(--text-light);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;margin-bottom:4px;transition:all .3s}
+.progress-step .step-label{font-size:11px;color:var(--text-light);font-weight:600;transition:all .3s}
+.progress-step.active .step-num{background:var(--primary);color:#fff}
+.progress-step.active .step-label{color:var(--primary)}
+.progress-step.completed .step-num{background:var(--green);color:#fff}
+.progress-step.completed .step-label{color:var(--green)}
+.progress-bar-track{height:4px;background:var(--border);border-radius:2px;margin-top:10px;max-width:1200px;margin-left:auto;margin-right:auto}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--primary));border-radius:2px;transition:width .4s ease}
+
+/* CONTAINER */
+.container{max-width:1200px;margin:0 auto;padding:24px 30px}
+
+/* STEP PANES */
+.step-pane{display:none}
+.step-pane.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border-radius:10px;padding:28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.06);border:1px solid var(--border)}
+.card-title{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--border)}
+
+/* FORMS */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;margin-bottom:12px}
+.form-group label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-light);margin-bottom:5px}
+input[type="text"],input[type="date"],input[type="number"],textarea,select{
+width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:6px;
+font-family:inherit;font-size:14px;color:var(--text);transition:border-color .2s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,82,118,.1)}
+textarea{resize:vertical;min-height:80px}
+
+/* BUTTONS */
+.btn{padding:10px 22px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-light)}
+.btn-secondary{background:var(--border);color:var(--text)}.btn-secondary:hover{background:#c5cdd6}
+.btn-accent{background:var(--accent);color:#fff}.btn-accent:hover{background:#d35400}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{background:#229954}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#c0392b}
+.btn-small{padding:6px 14px;font-size:12px}
+.btn-group{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+
+/* RESULT BOXES */
+.result-box{border-radius:8px;padding:18px 20px;margin:12px 0;border-left:4px solid}
+.result-box.green{background:var(--green-bg);border-color:var(--green)}
+.result-box.red{background:var(--red-bg);border-color:var(--red)}
+.result-box.amber{background:var(--amber-bg);border-color:var(--amber)}
+.result-box.blue{background:var(--blue-bg);border-color:var(--primary)}
+.result-title{font-weight:700;font-size:15px;margin-bottom:6px}
+.result-box.green .result-title{color:var(--green)}
+.result-box.red .result-title{color:var(--red)}
+.result-box.amber .result-title{color:var(--amber)}
+.result-box.blue .result-title{color:var(--primary)}
+
+/* STATUS BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-blue{background:var(--blue-bg);color:var(--primary)}
+
+/* TABLES */
+.data-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+.data-table th{background:var(--primary);color:#fff;padding:10px 12px;text-align:left;font-weight:600;font-size:12px}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border)}
+.data-table tr:hover{background:var(--bg)}
+
+/* WORK TYPE ITEMS */
+.scope-category{margin-bottom:20px}
+.scope-category-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--primary-light);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.work-item{border:1.5px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:8px;transition:all .2s;cursor:pointer;background:#fff}
+.work-item:hover{border-color:var(--primary-light)}
+.work-item.selected{background:var(--green-bg);border-color:var(--green)}
+.work-item-header{display:flex;align-items:flex-start;gap:10px}
+.work-item-header input[type="checkbox"]{margin-top:3px;width:16px;height:16px;cursor:pointer}
+.work-item-info{flex:1}
+.work-item-title{font-weight:600;font-size:14px;margin-bottom:2px}
+.work-item-desc{font-size:12px;color:var(--text-light)}
+.part-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.part-tag{background:var(--primary);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.part-tag.secondary{background:var(--accent)}
+
+/* GATEWAY CARDS */
+.gateway{border:2px solid var(--border);border-radius:10px;padding:24px;margin-bottom:16px;background:#fff}
+.gateway.resolved-pass{border-color:var(--green);background:var(--green-bg)}
+.gateway.resolved-fail{border-color:var(--red);background:var(--red-bg)}
+.gateway.resolved-amber{border-color:var(--amber);background:var(--amber-bg)}
+.gateway-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.gateway-num{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-light)}
+.gateway-title{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:4px}
+
+/* REGIME BANNER */
+.regime-banner{padding:20px 24px;border-radius:10px;color:#fff;margin:20px 0;text-align:center}
+.regime-banner.exempt{background:linear-gradient(135deg,var(--green),#229954)}
+.regime-banner.standard{background:linear-gradient(135deg,var(--amber),#d68910)}
+.regime-banner.hrb{background:linear-gradient(135deg,var(--red),#a93226)}
+.regime-banner h2{font-size:20px;margin-bottom:4px}
+.regime-banner p{font-size:13px;opacity:.95}
+
+/* DESIGNER CARDS */
+.designer-card{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;background:#fff}
+.designer-info h4{font-size:14px;margin-bottom:2px}
+.designer-info p{font-size:12px;color:var(--text-light)}
+
+/* ALLOCATION MATRIX */
+.alloc-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.alloc-part{font-weight:700;min-width:60px;color:var(--primary)}
+.alloc-name{font-size:13px;flex:1;color:var(--text)}
+.alloc-select{flex:1}
+
+/* APPOINTMENT CARDS */
+.appt-card{border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:10px;background:#fff}
+.appt-card .appt-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:4px}
+.appt-card h4{font-size:15px;margin-bottom:6px}
+
+/* OUTPUT PANELS */
+.output-panel{border:2px solid var(--primary);border-radius:10px;padding:20px;margin-bottom:16px;background:var(--blue-bg);cursor:pointer;transition:all .2s}
+.output-panel:hover{box-shadow:0 4px 12px rgba(26,82,118,.15);transform:translateY(-1px)}
+.output-panel h3{color:var(--primary);margin-bottom:4px;font-size:15px}
+.output-panel p{font-size:12px;color:var(--text-light)}
+
+/* PRINT */
+.print-area{display:none}
+@media print{body *{display:none!important}.print-area,.print-area *{display:block!important}}
+
+/* RIBA DATES */
+.riba-date{padding:6px 8px!important;font-size:13px!important;border:1.5px solid var(--border)!important;border-radius:4px!important;width:150px}
+.data-table .riba-date{width:140px}
+
+/* DUTY HOLDERS */
+.dh-card{border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:10px;background:#fff}
+.dh-card .dh-role{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:6px}
+.dh-card h4{font-size:14px;margin-bottom:4px;color:var(--primary)}
+.dh-card .dh-detail{font-size:12px;color:var(--text-light);line-height:1.5}
+.dh-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.dh-form-grid input,.dh-form-grid select{padding:8px 10px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;width:100%}
+.dh-form-grid input:focus{border-color:var(--primary);outline:none}
+.dh-form-grid label{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-light);margin-bottom:3px;display:block}
+.dh-actions{display:flex;gap:6px;margin-top:10px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+.form-row,.form-row.triple{grid-template-columns:1fr}
+.progress-step .step-label{font-size:9px}
+.container{padding:16px}
+}
+</style>
+</head>
+<body>
+<script id="embedded-data" type="application/json"></script>
+
+<!-- HEADER -->
+<div class="header">
+<h1>PD Scope Determination Tool</h1>
+<p>Principal Designer — Building Regulations Part 2A Scope Assessment & Determination</p>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-shell">
+<div class="progress-steps">
+<div class="progress-step active" onclick="goToStep(1)">
+<div class="step-num">1</div>
+<div class="step-label">Scope Input</div>
+</div>
+<div class="progress-step" onclick="goToStep(2)">
+<div class="step-num">2</div>
+<div class="step-label">Gateway Checks</div>
+</div>
+<div class="progress-step" onclick="goToStep(3)">
+<div class="step-num">3</div>
+<div class="step-label">Determination</div>
+</div>
+<div class="progress-step" onclick="goToStep(4)">
+<div class="step-num">4</div>
+<div class="step-label">Team & Allocation</div>
+</div>
+<div class="progress-step" onclick="goToStep(5)">
+<div class="step-num">5</div>
+<div class="step-label">Outputs</div>
+</div>
+</div>
+<div class="progress-bar-track"><div class="progress-bar-fill" style="width:10%"></div></div>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- STEP 1: SCOPE INPUT                                          -->
+<!-- ============================================================ -->
+<div class="step-pane active" id="step-1">
+
+<div class="card">
+<div class="card-title">Project Details</div>
+<div class="form-row">
+<div class="form-group">
+<label>Project Name / Reference *</label>
+<input type="text" id="project-name" placeholder="e.g., 42 High Street Extension">
+</div>
+<div class="form-group">
+<label>Client Name *</label>
+<input type="text" id="client-name" placeholder="Client or developer name">
+</div>
+</div>
+<div class="form-group">
+<label>Site Address</label>
+<input type="text" id="site-address" placeholder="Full site address including postcode">
+</div>
+<div class="form-row triple">
+<div class="form-group">
+<label>Date of Assessment</label>
+<input type="date" id="assess-date">
+</div>
+<div class="form-group">
+<label>Assessor Name (PD)</label>
+<input type="text" id="assessor-name" placeholder="Your name">
+</div>
+<div class="form-group">
+<label>PD Organisation</label>
+<input type="text" id="assessor-org" placeholder="Your company">
+</div>
+</div>
+<div class="form-group">
+<label>Intended Use of Building</label>
+<input type="text" id="building-use" placeholder="e.g., Hotel, Residential, Office, Mixed-use, School">
+</div>
+<div class="form-group">
+<label>Brief Description of Proposed Work</label>
+<textarea id="work-description" placeholder="Outline the main scope of works as described by the client..."></textarea>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">RIBA Programme Dates</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:16px">Enter known or indicative RIBA stage dates. These will carry through to the compliance statement.</p>
+<div style="overflow-x:auto">
+<table class="data-table" id="riba-dates-table">
+<thead>
+<tr><th>RIBA Stage</th><th>Start Date</th><th>End Date</th></tr>
+</thead>
+<tbody>
+<tr><td>Stage 0 — Strategic Definition</td><td><input type="date" id="riba-0-start" class="riba-date"></td><td><input type="date" id="riba-0-end" class="riba-date"></td></tr>
+<tr><td>Stage 1 — Preparation & Briefing</td><td><input type="date" id="riba-1-start" class="riba-date"></td><td><input type="date" id="riba-1-end" class="riba-date"></td></tr>
+<tr><td>Stage 2 — Concept Design</td><td><input type="date" id="riba-2-start" class="riba-date"></td><td><input type="date" id="riba-2-end" class="riba-date"></td></tr>
+<tr><td>Stage 3 — Spatial Coordination</td><td><input type="date" id="riba-3-start" class="riba-date"></td><td><input type="date" id="riba-3-end" class="riba-date"></td></tr>
+<tr><td>Stage 4A — Technical Design</td><td><input type="date" id="riba-4a-start" class="riba-date"></td><td><input type="date" id="riba-4a-end" class="riba-date"></td></tr>
+<tr><td>Stage 4B — Technical Design (Detailed)</td><td><input type="date" id="riba-4b-start" class="riba-date"></td><td><input type="date" id="riba-4b-end" class="riba-date"></td></tr>
+<tr><td>Stage 5 — Manufacturing & Construction</td><td><input type="date" id="riba-5-start" class="riba-date"></td><td><input type="date" id="riba-5-end" class="riba-date"></td></tr>
+<tr><td>Stage 6 — Handover</td><td><input type="date" id="riba-6-start" class="riba-date"></td><td><input type="date" id="riba-6-end" class="riba-date"></td></tr>
+<tr><td>Stage 7 — Use</td><td><input type="date" id="riba-7-start" class="riba-date"></td><td><input type="date" id="riba-7-end" class="riba-date"></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Critical Project Questions</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:16px">These determine which regulatory regime applies to the project.</p>
+<div class="form-row">
+<div class="form-group">
+<label>Client Type (Reg 11C) *</label>
+<select id="client-type">
+<option value="">-- Select --</option>
+<option value="commercial">Commercial / Corporate Client</option>
+<option value="domestic">Domestic Client (individual building/renovating their own home)</option>
+</select>
+<p style="font-size:11px;color:var(--text-light);margin-top:4px">Domestic client duties transfer to contractor/PC (or PD if agreed in writing) under Reg 11C</p>
+</div>
+<div class="form-group">
+<label>Number of Contractors (Reg 11D) *</label>
+<select id="contractor-count">
+<option value="">-- Select --</option>
+<option value="1">1 contractor (single contractor project)</option>
+<option value="2+">More than 1 contractor (or foreseeably more than 1)</option>
+</select>
+<p style="font-size:11px;color:var(--text-light);margin-top:4px">PD & PC appointment required only where >1 contractor is involved or foreseeable</p>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Scope of Works</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:16px">Select all work types that apply. Building Regulation Parts will auto-populate based on your selections.</p>
+<div id="scope-container"></div>
+</div>
+
+<div id="scope-summary" style="display:none">
+<div class="card">
+<div class="card-title">Triggered Building Regulation Parts</div>
+<div id="triggered-parts-summary"></div>
+</div>
+</div>
+
+<div class="btn-group">
+<button class="btn btn-primary" onclick="completeStep1()">Next: Gateway Checks →</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- STEP 2: GATEWAY CHECKS                                       -->
+<!-- ============================================================ -->
+<div class="step-pane" id="step-2">
+
+<!-- GATEWAY 1: Schedule 4 -->
+<div class="gateway" id="gw-schedule4">
+<div class="gateway-header">
+<div>
+<div class="gateway-num">Gateway 1</div>
+<div class="gateway-title">Schedule 4 — Minor Works Exemption</div>
+</div>
+<span class="badge badge-blue" id="gw1-badge">Pending</span>
+</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">If ALL selected work falls within Schedule 4 categories, Part 2A duty holder requirements do not apply. The PD/PC appointment regime is not triggered.</p>
+
+<div style="background:var(--bg);border-radius:8px;padding:14px;margin-bottom:12px">
+<p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px">SCHEDULE 4 EXEMPT CATEGORIES:</p>
+<p style="font-size:11px;color:var(--text-light);line-height:1.7">
+1(f) Replacing parts of building services &bull;
+1(g) New self-contained fixed building service &bull;
+1(h) Replacing external door ≤50% glazed &bull;
+1(i) Fixed internal lighting ≤100m² non-dwelling &bull;
+1(j) Replacing sanitary fittings / rainwater goods &bull;
+1(k) Cold water supply modifications &bull;
+1(l) Hot water vessel ≤15 litres &bull;
+1(m) Loft insulation only &bull;
+3A Suspended timber floor insulation
+</p>
+</div>
+
+<div id="schedule4-items"></div>
+<div id="schedule4-result"></div>
+</div>
+
+<!-- GATEWAY 2: HRB -->
+<div class="gateway" id="gw-hrb">
+<div class="gateway-header">
+<div>
+<div class="gateway-num">Gateway 2</div>
+<div class="gateway-title">Higher-Risk Building (HRB) Determination</div>
+</div>
+<span class="badge badge-blue" id="gw2-badge">Pending</span>
+</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Buildings ≥18m height OR ≥7 storeys that contain ≥2 residential units, are care homes, or hospitals are classified as Higher-Risk Buildings under the Building Safety Act 2022.</p>
+
+<div class="form-row">
+<div class="form-group">
+<label>Building Height (metres)</label>
+<input type="number" id="building-height" placeholder="e.g., 24.5" step="0.1" oninput="evaluateHRB()">
+</div>
+<div class="form-group">
+<label>Number of Storeys</label>
+<input type="number" id="building-storeys" placeholder="e.g., 7" min="0" oninput="evaluateHRB()">
+</div>
+</div>
+
+<div class="form-group">
+<label>Building Type *</label>
+<div style="display:grid;gap:8px;margin-top:4px">
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:14px;cursor:pointer">
+<input type="radio" name="building-type" value="residential" onchange="evaluateHRB()"> Contains ≥2 residential units
+</label>
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:14px;cursor:pointer">
+<input type="radio" name="building-type" value="care" onchange="evaluateHRB()"> Care home / institutional residential
+</label>
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:14px;cursor:pointer">
+<input type="radio" name="building-type" value="hospital" onchange="evaluateHRB()"> Hospital (with overnight beds)
+</label>
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:14px;cursor:pointer">
+<input type="radio" name="building-type" value="none" onchange="evaluateHRB()" checked> None of these (commercial, industrial, single dwelling, etc.)
+</label>
+</div>
+</div>
+
+<div id="hrb-exclusions" style="display:none;margin-top:12px">
+<div class="form-group">
+<label>HRB Exclusions (SI 2023/275 Reg 8)</label>
+<div style="display:grid;gap:6px;margin-top:4px">
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" class="hrb-excl" value="prison" onchange="evaluateHRB()"> Secure residential institution (prison)
+</label>
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" class="hrb-excl" value="hotel" onchange="evaluateHRB()"> Hotel / guest accommodation
+</label>
+<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" class="hrb-excl" value="military" onchange="evaluateHRB()"> Military barracks / MoD accommodation
+</label>
+</div>
+</div>
+</div>
+
+<div id="hrb-result"></div>
+</div>
+
+<!-- GATEWAY 3: Domestic Client -->
+<div class="gateway" id="gw-domestic">
+<div class="gateway-header">
+<div>
+<div class="gateway-num">Gateway 3</div>
+<div class="gateway-title">Domestic Client — Reg 11C Duty Transfer</div>
+</div>
+<span class="badge badge-blue" id="gw3-badge">Pending</span>
+</div>
+<div id="domestic-result"></div>
+</div>
+
+<!-- REGIME DETERMINATION BANNER -->
+<div id="regime-banner-container"></div>
+
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="goToStep(1)">← Back to Scope</button>
+<button class="btn btn-primary" onclick="completeStep2()">Next: Determination Results →</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- STEP 3: DETERMINATION RESULTS                                -->
+<!-- ============================================================ -->
+<div class="step-pane" id="step-3">
+
+<div id="regime-banner-echo"></div>
+
+<div class="card">
+<div class="card-title">Triggered Building Regulation Parts & Functional Requirements</div>
+<div id="triggered-parts-detail"></div>
+</div>
+
+<div class="card">
+<div class="card-title">Duty Holder Regime</div>
+<div id="dutyholder-regime"></div>
+</div>
+
+<div class="card">
+<div class="card-title">Applicable Competence Standards</div>
+<div id="competence-standards"></div>
+</div>
+
+<div class="card">
+<div class="card-title">Building Control Route</div>
+<div id="bc-route-section"></div>
+</div>
+
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="goToStep(2)">← Back to Gateways</button>
+<button class="btn btn-primary" onclick="completeStep3()">Next: Team & Allocation →</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- STEP 4: TEAM & ALLOCATION                                    -->
+<!-- ============================================================ -->
+<div class="step-pane" id="step-4">
+
+<div class="card">
+<div class="card-title">Duty Holders & Key Project Contacts</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Record the duty holders and key contacts for this project. These details carry through to the Building Regulations Compliance Statement.</p>
+<div id="duty-holders-list"></div>
+<div style="background:var(--blue-bg);border:2px solid var(--primary);border-radius:8px;padding:16px;margin-top:12px">
+<p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:10px">ADD DUTY HOLDER / CONTACT</p>
+<div class="form-row">
+<div class="form-group">
+<label>Role *</label>
+<select id="dh-role">
+<option value="">-- Select Role --</option>
+<optgroup label="Statutory Duty Holders">
+<option value="Client">Client</option>
+<option value="BR Principal Designer">BR Principal Designer</option>
+<option value="BR Principal Contractor">BR Principal Contractor</option>
+<option value="CDM Principal Designer">CDM Principal Designer</option>
+<option value="CDM Principal Contractor">CDM Principal Contractor</option>
+</optgroup>
+<optgroup label="Project Team">
+<option value="Adviser to Principal Designer">Adviser to Principal Designer</option>
+<option value="Client Agent / Project Manager">Client Agent / Project Manager</option>
+<option value="Quantity Surveyor / Cost Consultant">Quantity Surveyor / Cost Consultant</option>
+<option value="Building Control">Building Control</option>
+</optgroup>
+<optgroup label="Other">
+<option value="Other">Other (specify in name)</option>
+</optgroup>
+</select>
+</div>
+<div class="form-group">
+<label>Named Person *</label>
+<input type="text" id="dh-person" placeholder="Full name">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Company / Organisation *</label>
+<input type="text" id="dh-company" placeholder="Organisation name">
+</div>
+<div class="form-group">
+<label>Email</label>
+<input type="text" id="dh-email" placeholder="email@company.com">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>Address</label>
+<input type="text" id="dh-address" placeholder="Business address">
+</div>
+<div class="form-group">
+<label>Phone</label>
+<input type="text" id="dh-phone" placeholder="Phone number">
+</div>
+</div>
+<div class="form-row">
+<div class="form-group">
+<label>RIBA Stage Coverage</label>
+<input type="text" id="dh-stage-coverage" placeholder="e.g., Up to and including RIBA Stage 4B">
+</div>
+<div class="form-group">
+<label>Qualifications / Notes</label>
+<input type="text" id="dh-qualifications" placeholder="e.g., BSc (Hons) MCIOB CMaPS">
+</div>
+</div>
+<button class="btn btn-primary btn-small" onclick="addDutyHolder()">+ Add Duty Holder</button>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Project Design Team</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Register the designers and specialists involved in this project.</p>
+<div id="designer-list"></div>
+<div style="background:var(--blue-bg);border:2px solid var(--primary);border-radius:8px;padding:16px;margin-top:12px">
+<p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:10px">ADD DESIGNER</p>
+<div class="form-row triple">
+<div class="form-group">
+<label>Name *</label>
+<input type="text" id="new-designer-name" placeholder="Full name">
+</div>
+<div class="form-group">
+<label>Company *</label>
+<input type="text" id="new-designer-company" placeholder="Organisation">
+</div>
+<div class="form-group">
+<label>Specialism *</label>
+<input type="text" id="new-designer-specialism" placeholder="e.g., Structural, M&E, Fire">
+</div>
+</div>
+<button class="btn btn-primary btn-small" onclick="addDesigner()">+ Add Designer</button>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Design Responsibility Matrix — Allocate Designers to Regulation Parts</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Assign one or more designers from your team to each triggered regulation part. This forms the Design Responsibility Matrix (DRM) per Reg 11M.</p>
+<div id="allocation-matrix"></div>
+</div>
+
+<div class="card">
+<div class="card-title">Appointment Records</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Record formal duty holder appointments (Reg 11B/11D). The Client must appoint in writing.</p>
+<div id="appointment-list"></div>
+<div style="background:var(--blue-bg);border:2px solid var(--primary);border-radius:8px;padding:16px;margin-top:12px">
+<p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:10px">ADD APPOINTMENT</p>
+<div class="form-row">
+<div class="form-group">
+<label>Role *</label>
+<select id="appt-role">
+<option value="">-- Select --</option>
+<option value="Principal Designer">Principal Designer (Reg 11D)</option>
+<option value="Principal Contractor">Principal Contractor (Reg 11D)</option>
+<option value="Designer">Designer (Reg 11K)</option>
+<option value="Contractor">Contractor (Reg 11L)</option>
+</select>
+</div>
+<div class="form-group">
+<label>Name *</label>
+<input type="text" id="appt-name" placeholder="Appointee name">
+</div>
+</div>
+<div class="form-row triple">
+<div class="form-group">
+<label>Organisation</label>
+<input type="text" id="appt-org" placeholder="Company">
+</div>
+<div class="form-group">
+<label>Appointment Date</label>
+<input type="date" id="appt-date">
+</div>
+<div class="form-group">
+<label>Specialism</label>
+<input type="text" id="appt-specialism" placeholder="e.g., Architect, Structural">
+</div>
+</div>
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+<label style="display:flex;gap:6px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" id="appt-written"> Appointed in writing
+</label>
+<label style="display:flex;gap:6px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" id="appt-competence"> Competence verified
+</label>
+<label style="display:flex;gap:6px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer">
+<input type="checkbox" id="appt-accepted"> Appointment accepted
+</label>
+</div>
+<button class="btn btn-primary btn-small" onclick="addAppointment()">+ Add Appointment</button>
+</div>
+</div>
+
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="goToStep(3)">← Back to Determination</button>
+<button class="btn btn-primary" onclick="completeStep4()">Next: Outputs →</button>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- STEP 5: OUTPUTS                                              -->
+<!-- ============================================================ -->
+<div class="step-pane" id="step-5">
+
+<div id="regime-banner-final"></div>
+
+<div class="card">
+<div class="card-title">Generate & Export</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:20px">Generate the documents below to circulate to the project team. These outputs form the single source of truth for the project's Building Regulations scope determination.</p>
+
+<div class="output-panel" onclick="generateScopeReport()">
+<h3>📄 Scope Determination Report</h3>
+<p>Full PDF report covering project details, scope, gateway results, triggered regulations, duty holder regime, team allocations and appointments. The primary deliverable — circulate to all duty holders.</p>
+</div>
+
+<div class="output-panel" onclick="generateDRM()">
+<h3>📋 Design Responsibility Matrix</h3>
+<p>Exportable table showing each triggered regulation part, functional requirements, and allocated designer. Circulate to all designers.</p>
+</div>
+
+<div class="output-panel" onclick="generateClientLetter()">
+<h3>✉️ Client Duties Letter</h3>
+<p>Auto-generated letter explaining the Client's duties under Reg 11A, tailored to this project's determination (commercial/domestic, HRB status). Send to the Client.</p>
+</div>
+
+<div class="output-panel" onclick="showDeclarationTracker()">
+<h3>📝 Declaration Tracker</h3>
+<p>Tracking table showing who will need to provide a Reg 11Q compliance declaration at project completion, and their current status. NOT the declarations themselves — those are completed at completion.</p>
+</div>
+</div>
+
+<div class="card">
+<div class="card-title">Declaration Tracker (Reg 11Q)</div>
+<p style="font-size:13px;color:var(--text-light);margin-bottom:14px">Each duty holder must provide a signed compliance declaration confirming fulfilment of their Part 2A duties when applying for a completion certificate. This tracker records who needs to declare and when — the actual declarations are completed at project end.</p>
+<div id="declaration-tracker-table"></div>
+</div>
+
+<div class="card">
+<div class="card-title">Save / Load Assessment</div>
+<div class="btn-group" style="margin-top:0">
+<button class="btn btn-green" onclick="saveAssessment()">💾 Save Assessment</button>
+<button class="btn btn-accent" onclick="saveAsHTML()">📦 Export as HTML</button>
+<button class="btn btn-primary" onclick="loadFromHTML()">📂 Import from HTML</button>
+<button class="btn btn-secondary" onclick="startNew()">🔄 Start New Assessment</button>
+</div>
+<div id="saved-assessments" style="margin-top:16px"></div>
+</div>
+
+</div>
+
+</div><!-- end container -->
+
+<!-- PRINT AREA (hidden, used for PDF generation) -->
+<div class="print-area" id="print-area"></div>
+
+<script>
+// ============================================================
+// DATA: PARTS DEFINITIONS
+// ============================================================
+const partsDefinitions = {
+'Reg7':{name:'Regulation 7 — Materials & Workmanship',desc:'Building work shall be carried out with adequate and proper materials and in a workmanlike manner.',functionalReqs:['Adequate and proper materials','Workmanlike manner of construction','Materials fit for intended purpose','CE/UKCA marking where applicable']},
+'A':{name:'Part A — Structure',desc:'Combined dead, imposed and wind loads sustained and transmitted safely to ground.',functionalReqs:['A1 — Loading: sustain combined loads safely','A2 — Ground movement: resist without impairment','A3 — Disproportionate collapse: building shall not suffer collapse to an extent disproportionate to the cause']},
+'B':{name:'Part B — Fire Safety',desc:'Reasonable provision for warning, escape, fire spread limitation, and fire service access.',functionalReqs:['B1 — Means of warning and escape','B2 — Internal fire spread (linings)','B3 — Internal fire spread (structure)','B4 — External fire spread','B5 — Access and facilities for fire service']},
+'C':{name:'Part C — Site Preparation & Moisture Resistance',desc:'Ground free from contaminants; walls, floors and roofs resist passage of moisture.',functionalReqs:['C1 — Site preparation and resistance to contaminants','C2 — Resistance to moisture']},
+'D':{name:'Part D — Toxic Substances',desc:'Prevent permeation of toxic fumes from cavity wall insulation.',functionalReqs:['D1 — Cavity insulation: prevent toxic fume permeation']},
+'E':{name:'Part E — Resistance to Sound',desc:'Dwelling-houses and flats to have reasonable resistance to sound.',functionalReqs:['E1 — Protection against sound from other parts','E2 — Protection against sound within dwelling','E3 — Reverberation in common internal parts','E4 — Acoustic conditions in schools']},
+'F':{name:'Part F — Ventilation',desc:'Adequate means of ventilation for people in the building.',functionalReqs:['F1 — Means of ventilation (including commissioning of fixed systems per Regs 39, 42 and 44)']},
+'G':{name:'Part G — Sanitation, Hot Water & Water Efficiency',desc:'Adequate sanitary conveniences, hot water safety, water efficiency.',functionalReqs:['G1 — Cold water supply','G2 — Water efficiency (max 125 l/person/day new dwellings)','G3 — Hot water supply and systems (safety)','G4 — Sanitary conveniences','G5 — Bathrooms','G6 — Food preparation areas']},
+'H':{name:'Part H — Drainage & Waste Disposal',desc:'Adequate provision for drainage of foul water, rainwater and wastewater.',functionalReqs:['H1 — Foul water drainage','H2 — Wastewater treatment systems','H3 — Rainwater drainage','H4 — Building over sewers','H5 — Separate systems of drainage','H6 — Solid waste storage']},
+'J':{name:'Part J — Combustion Appliances & Fuel Storage',desc:'Combustion appliances installed with adequate air supply and safe discharge.',functionalReqs:['J1 — Air supply for combustion appliances','J2 — Discharge of combustion products','J3 — Warning of CO release','J4 — Protection of building from fire','J5 — Provision of information','J6 — Liquid fuel storage protection','J7 — Oil storage fire protection']},
+'K':{name:'Part K — Protection from Falling, Collision & Impact',desc:'Safe stairs/ramps, protection from falling, safe glazing.',functionalReqs:['K1 — Stairs, ladders and ramps','K2 — Protection from falling','K3 — Vehicle barriers and loading bays','K4 — Protection from collision with open windows','K5 — Protection from impact by doors','K5.3 — Glazing safety and manifestation']},
+'L':{name:'Part L — Conservation of Fuel & Power',desc:'Reasonable provision for conservation of fuel and power.',functionalReqs:['L1 — Conservation of fuel and power (new dwellings)','L1 — Conservation of fuel and power (existing dwellings)','L2 — Conservation of fuel and power (new non-dwellings)','L2 — Conservation of fuel and power (existing non-dwellings)']},
+'M':{name:'Part M — Access to & Use of Buildings',desc:'Reasonable provision for people to gain access to and use the building.',functionalReqs:['M1 — Access and use (dwellings)','M2 — Access and use (non-dwellings)','M4(1) — Category 1: Visitable dwellings','M4(2) — Category 2: Accessible and adaptable dwellings','M4(3) — Category 3: Wheelchair user dwellings']},
+'O':{name:'Part O — Overheating',desc:'Limit unwanted solar gains and provide means to remove heat in new residential.',functionalReqs:['O1 — Overheating mitigation in new residential buildings and residential buildings undergoing major renovation']},
+'P':{name:'Part P — Electrical Safety',desc:'Design and installation of electrical installations to protect from fire or injury.',functionalReqs:['P1 — Design and installation of electrical installations']},
+'Q':{name:'Part Q — Security (Dwellings Only)',desc:'Resist unauthorised access to dwellings.',functionalReqs:['Q1 — Secure doorsets and windows in new dwellings']},
+'R':{name:'Part R — High-Speed Electronic Communications',desc:'In-building physical infrastructure capable of gigabit-ready connections.',functionalReqs:['R1 — In-building physical infrastructure']},
+'S':{name:'Part S — EV Charging Infrastructure',desc:'Provision for electric vehicle charge points or cable routes.',functionalReqs:['S1 — New residential: EV charge points','S2 — New non-residential: EV charge points','S3 — Residential major renovation','S4 — Non-residential major renovation','S5 — Non-residential >20 spaces: cable routes']},
+'T':{name:'Part T — Toilet Accommodation',desc:'Adequate provision of self-contained toilet accommodation in non-residential buildings.',functionalReqs:['T1 — Provision of self-contained toilet accommodation']},
+'Reg38':{name:'Regulation 38 — Fire Safety Information',desc:'Fire safety information provided to responsible person at completion.',functionalReqs:['Fire strategy','Means of escape drawings','Fire detection and alarm specification','Emergency lighting','Compartmentation details','Fire stopping schedule','External wall construction details','Sprinkler/suppression details (where installed)']}
+};
+
+// ============================================================
+// DATA: WORK TYPES
+// ============================================================
+const workTypes = [
+{category:'Structural & Envelope',items:[
+{id:'new-build',label:'New build / new building',desc:'Construction of a wholly new building',parts:['Reg7','A','B','C','D','E','F','G','H','J','K','L','M','O','P','Q','R','S','Reg38']},
+{id:'extension',label:'Extension',desc:'Construction of an extension to an existing building',parts:['Reg7','A','B','C','F','G','H','J','K','L','M','O','P','Q','R','Reg38']},
+{id:'struct-alter',label:'Structural alterations',desc:'Alterations to the structure or frame',parts:['Reg7','A','B','K','Reg38']},
+{id:'loft-conv',label:'Loft conversion',desc:'Conversion of roof space to habitable rooms',parts:['Reg7','A','B','C','F','G','K','L','M','O','P','Reg38']},
+{id:'basement-conv',label:'Basement conversion',desc:'Conversion of basement to habitable space',parts:['Reg7','A','B','C','F','G','H','J','K','L','M','O','P','Reg38']},
+{id:'change-use',label:'Change of use',desc:'Change of intended use of the building',parts:['Reg7','B','C','E','F','G','K','L','M','O','P','Reg38']},
+{id:'demolition',label:'Demolition',desc:'Demolition or removal of part of the building',parts:['Reg7','B','Reg38']}
+]},
+{category:'Building Services',items:[
+{id:'heating-system',label:'New heating / boiler system',desc:'Installation of new heating system or boiler',parts:['Reg7','F','J','L','P']},
+{id:'windows-doors',label:'Replacement windows / doors (>50% glazed)',desc:'Replacement windows or doors',parts:['Reg7','K','L','Q']},
+{id:'electrical',label:'New or replacement electrical installation',desc:'Electrical wiring or installation work',parts:['Reg7','B','P']},
+{id:'ventilation',label:'New ventilation / HVAC system',desc:'Ventilation or air handling system',parts:['Reg7','F','L','P']},
+{id:'drainage',label:'New drainage / underground drainage',desc:'Underground drainage or sewer connection',parts:['Reg7','H']},
+{id:'plumbing',label:'Plumbing (hot/cold water systems)',desc:'Hot and cold water supply installations',parts:['Reg7','G','P']},
+{id:'fire-alarm',label:'New fire alarm / detection system',desc:'Fire alarm or detection system',parts:['Reg7','B','Reg38']},
+{id:'lightning',label:'New lightning protection',desc:'Lightning protection system',parts:['Reg7','P']},
+{id:'renewable',label:'Renewable energy installation',desc:'Solar panels, heat pump, wind turbine, etc.',parts:['Reg7','L','P']}
+]},
+{category:'Fire Safety Specific',items:[
+{id:'cladding',label:'External wall cladding / recladding',desc:'Installation or replacement of external wall cladding',parts:['Reg7','B','L','Reg38']},
+{id:'fire-stopping',label:'Fire stopping / compartmentation works',desc:'Fire stopping or compartmentation',parts:['Reg7','B','Reg38']},
+{id:'escape',label:'Means of escape alterations',desc:'Changes to escape routes',parts:['Reg7','B','K','M','Reg38']},
+{id:'sprinkler',label:'Sprinkler installation',desc:'Sprinkler system installation',parts:['Reg7','B','Reg38']}
+]},
+{category:'Accessibility & Comfort',items:[
+{id:'disabled-access',label:'Disabled access works',desc:'Adaptations for disabled access',parts:['Reg7','M','K']},
+{id:'sound',label:'Sound insulation works',desc:'Sound insulation or acoustic improvements',parts:['Reg7','E']},
+{id:'overheating',label:'Overheating mitigation',desc:'Measures to prevent overheating',parts:['Reg7','O']},
+{id:'thermal',label:'Thermal insulation (not Schedule 4)',desc:'Thermal insulation works',parts:['Reg7','L']}
+]},
+{category:'Site Works',items:[
+{id:'access',label:'New access / vehicle crossing',desc:'New vehicular access or crossing',parts:['Reg7','H']},
+{id:'external',label:'External works affecting drainage',desc:'External works affecting drainage or water management',parts:['Reg7','H']}
+]}
+];
+
+// Schedule 4 exempt mapping
+const schedule4Exempt = {
+'windows-doors':true,'plumbing':true,'thermal':true,'loft-conv':true,
+'new-build':false,'extension':false,'struct-alter':false,'basement-conv':false,
+'change-use':false,'demolition':false,'heating-system':false,'electrical':false,
+'ventilation':false,'drainage':false,'fire-alarm':false,'lightning':false,
+'renewable':false,'cladding':false,'fire-stopping':false,'escape':false,
+'sprinkler':false,'disabled-access':false,'sound':false,'overheating':false,
+'access':false,'external':false
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let currentStep = 1;
+let state = {
+project:{name:'',client:'',address:'',date:'',assessor:'',assessorOrg:'',description:'',clientType:'',contractorCount:'',buildingUse:'',ribaDates:{}},
+scope:{selected:[],triggeredParts:[]},
+gateways:{schedule4Exempt:null,isHRB:false,hrbHeight:0,hrbStoreys:0,hrbType:'none',hrbExclusions:[],domesticClient:false},
+regime:'',  // 'exempt','standard','hrb'
+bcRoute:{chosen:'',date:''},
+designers:[],
+allocations:{}, // partCode: [designerIndex, ...]
+appointments:[],
+dutyHolders:[],
+};
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goToStep(n) {
+    if (n < 1 || n > 5) return;
+    currentStep = n;
+    document.querySelectorAll('.step-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    document.querySelectorAll('.progress-step').forEach((s, i) => {
+        s.classList.remove('active','completed');
+        if (i + 1 === n) s.classList.add('active');
+        else if (i + 1 < n) s.classList.add('completed');
+    });
+    document.querySelector('.progress-bar-fill').style.width = ((n - 1) / 4 * 100) + '%';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ============================================================
+// STEP 1: SCOPE INPUT
+// ============================================================
+function renderScopeItems() {
+    const container = document.getElementById('scope-container');
+    let html = '';
+    workTypes.forEach(cat => {
+        html += '<div class="scope-category"><div class="scope-category-title">' + cat.category + '</div>';
+        cat.items.forEach(item => {
+            const sel = state.scope.selected.includes(item.id);
+            html += '<div class="work-item' + (sel ? ' selected' : '') + '" id="wi-' + item.id + '">';
+            html += '<div class="work-item-header">';
+            html += '<input type="checkbox" ' + (sel ? 'checked' : '') + ' onchange="toggleWorkType(\'' + item.id + '\',this)">';
+            html += '<div class="work-item-info"><div class="work-item-title">' + item.label + '</div>';
+            html += '<div class="work-item-desc">' + item.desc + '</div></div></div>';
+            html += '<div class="part-tags">' + item.parts.map(p => '<span class="part-tag">' + p + '</span>').join('') + '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+    });
+    container.innerHTML = html;
+}
+
+function toggleWorkType(id, cb) {
+    if (cb.checked) {
+        if (!state.scope.selected.includes(id)) state.scope.selected.push(id);
+    } else {
+        state.scope.selected = state.scope.selected.filter(x => x !== id);
+    }
+    document.getElementById('wi-' + id).classList.toggle('selected', cb.checked);
+    updateTriggeredParts();
+}
+
+function updateTriggeredParts() {
+    const parts = new Set();
+    state.scope.selected.forEach(id => {
+        const item = workTypes.flatMap(c => c.items).find(i => i.id === id);
+        if (item) item.parts.forEach(p => parts.add(p));
+    });
+    state.scope.triggeredParts = [...parts].sort((a, b) => {
+        const order = ['Reg7','A','B','C','D','E','F','G','H','J','K','L','M','O','P','Q','R','S','T','Reg38'];
+        return order.indexOf(a) - order.indexOf(b);
+    });
+    renderTriggeredSummary();
+}
+
+function renderTriggeredSummary() {
+    const el = document.getElementById('scope-summary');
+    const container = document.getElementById('triggered-parts-summary');
+    if (state.scope.triggeredParts.length === 0) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    let html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">';
+    state.scope.triggeredParts.forEach(p => {
+        html += '<span class="part-tag" style="font-size:12px;padding:4px 12px">' + p + '</span>';
+    });
+    html += '</div>';
+    html += '<p style="font-size:13px;color:var(--text-light)">' + state.scope.triggeredParts.length + ' regulation parts triggered by ' + state.scope.selected.length + ' selected work types.</p>';
+    container.innerHTML = html;
+}
+
+function collectProjectDetails() {
+    state.project.name = document.getElementById('project-name').value;
+    state.project.client = document.getElementById('client-name').value;
+    state.project.address = document.getElementById('site-address').value;
+    state.project.date = document.getElementById('assess-date').value;
+    state.project.assessor = document.getElementById('assessor-name').value;
+    state.project.assessorOrg = document.getElementById('assessor-org').value;
+    state.project.description = document.getElementById('work-description').value;
+    state.project.clientType = document.getElementById('client-type').value;
+    state.project.contractorCount = document.getElementById('contractor-count').value;
+    state.project.buildingUse = document.getElementById('building-use').value;
+    // Collect RIBA dates
+    var ribaDates = {};
+    ['0','1','2','3','4a','4b','5','6','7'].forEach(function(s) {
+        var startEl = document.getElementById('riba-' + s + '-start');
+        var endEl = document.getElementById('riba-' + s + '-end');
+        if (startEl && endEl && (startEl.value || endEl.value)) {
+            ribaDates[s] = { start: startEl.value || '', end: endEl.value || '' };
+        }
+    });
+    state.project.ribaDates = ribaDates;
+}
+
+function completeStep1() {
+    collectProjectDetails();
+    if (!state.project.name || !state.project.client) {
+        alert('Please enter at least a Project Name and Client Name.');
+        return;
+    }
+    if (!state.project.clientType) {
+        alert('Please select the Client Type (commercial or domestic).');
+        return;
+    }
+    if (!state.project.contractorCount) {
+        alert('Please select the Number of Contractors.');
+        return;
+    }
+    if (state.scope.selected.length === 0) {
+        alert('Please select at least one work type in the Scope of Works.');
+        return;
+    }
+    renderGateways();
+    goToStep(2);
+}
+
+// ============================================================
+// STEP 2: GATEWAY CHECKS
+// ============================================================
+function renderGateways() {
+    renderSchedule4();
+    evaluateHRB();
+    evaluateDomestic();
+    renderRegimeBanner();
+}
+
+function renderSchedule4() {
+    const items = document.getElementById('schedule4-items');
+    const result = document.getElementById('schedule4-result');
+    let html = '';
+    let allExempt = true;
+    let nonExempt = [];
+    state.scope.selected.forEach(id => {
+        const item = workTypes.flatMap(c => c.items).find(i => i.id === id);
+        const exempt = schedule4Exempt[id] === true;
+        if (!exempt) { allExempt = false; nonExempt.push(item.label); }
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;background:#fff">';
+        html += '<span style="font-size:13px">' + item.label + '</span>';
+        html += exempt
+            ? '<span class="badge badge-green">✓ Exempt</span>'
+            : '<span class="badge badge-red">✗ Not Exempt</span>';
+        html += '</div>';
+    });
+    items.innerHTML = html;
+    state.gateways.schedule4Exempt = allExempt;
+
+    const gw = document.getElementById('gw-schedule4');
+    const badge = document.getElementById('gw1-badge');
+    gw.classList.remove('resolved-pass','resolved-fail','resolved-amber');
+    if (allExempt) {
+        result.innerHTML = '<div class="result-box green"><div class="result-title">SCHEDULE 4 EXEMPT</div><p>All selected work falls within Schedule 4 categories. Part 2A duty holder requirements do not apply. No PD/PC appointment is required for this scope.</p></div>';
+        gw.classList.add('resolved-pass');
+        badge.className = 'badge badge-green'; badge.textContent = 'Exempt';
+    } else {
+        result.innerHTML = '<div class="result-box red"><div class="result-title">NOT EXEMPT — Full Part 2A Applies</div><p>' + nonExempt.length + ' work item(s) fall outside Schedule 4: ' + nonExempt.join(', ') + '. Full Part 2A duty holder regime applies.</p></div>';
+        gw.classList.add('resolved-fail');
+        badge.className = 'badge badge-red'; badge.textContent = 'Not Exempt';
+    }
+}
+
+function evaluateHRB() {
+    const height = parseFloat(document.getElementById('building-height').value) || 0;
+    const storeys = parseInt(document.getElementById('building-storeys').value) || 0;
+    const typeEl = document.querySelector('input[name="building-type"]:checked');
+    const type = typeEl ? typeEl.value : 'none';
+    const exclusions = [...document.querySelectorAll('.hrb-excl:checked')].map(e => e.value);
+
+    state.gateways.hrbHeight = height;
+    state.gateways.hrbStoreys = storeys;
+    state.gateways.hrbType = type;
+    state.gateways.hrbExclusions = exclusions;
+
+    const meetsHeight = height >= 18 || storeys >= 7;
+    const meetsType = ['residential','care','hospital'].includes(type);
+    const isExcluded = exclusions.length > 0;
+
+    // Show exclusions section only if meets both criteria
+    document.getElementById('hrb-exclusions').style.display = (meetsHeight && meetsType) ? 'block' : 'none';
+
+    const isHRB = meetsHeight && meetsType && !isExcluded;
+    state.gateways.isHRB = isHRB;
+
+    const result = document.getElementById('hrb-result');
+    const gw = document.getElementById('gw-hrb');
+    const badge = document.getElementById('gw2-badge');
+    gw.classList.remove('resolved-pass','resolved-fail','resolved-amber');
+
+    if (isHRB) {
+        result.innerHTML = '<div class="result-box red"><div class="result-title">HIGHER-RISK BUILDING (HRB)</div><p>Height: ' + height + 'm | Storeys: ' + storeys + ' | Type: ' + type + '. BSR route mandatory. Gateway 2 and Gateway 3 submissions required.</p></div>';
+        gw.classList.add('resolved-fail');
+        badge.className = 'badge badge-red'; badge.textContent = 'HRB';
+    } else if (meetsHeight && meetsType && isExcluded) {
+        result.innerHTML = '<div class="result-box amber"><div class="result-title">MEETS HRB CRITERIA BUT EXCLUDED</div><p>Building meets height/type criteria but is excluded under SI 2023/275 Reg 8 (' + exclusions.join(', ') + '). Standard Building Control applies.</p></div>';
+        gw.classList.add('resolved-amber');
+        badge.className = 'badge badge-amber'; badge.textContent = 'Excluded';
+    } else {
+        result.innerHTML = '<div class="result-box green"><div class="result-title">STANDARD BUILDING (NOT HRB)</div><p>Building does not meet HRB criteria. Standard Building Control route applies.' + (height > 0 ? ' Height: ' + height + 'm, Storeys: ' + storeys + '.' : '') + '</p></div>';
+        gw.classList.add('resolved-pass');
+        badge.className = 'badge badge-green'; badge.textContent = 'Standard';
+    }
+    evaluateDomestic();
+    renderRegimeBanner();
+}
+
+function evaluateDomestic() {
+    const isDomestic = state.project.clientType === 'domestic';
+    state.gateways.domesticClient = isDomestic;
+    const result = document.getElementById('domestic-result');
+    const gw = document.getElementById('gw-domestic');
+    const badge = document.getElementById('gw3-badge');
+    gw.classList.remove('resolved-pass','resolved-fail','resolved-amber');
+
+    if (isDomestic) {
+        result.innerHTML = '<div class="result-box amber"><div class="result-title">DOMESTIC CLIENT — Reg 11C Applies</div><p>Client duties under Reg 11A transfer automatically to the contractor (single contractor) or principal contractor (multiple contractors). Alternatively, where there is more than one contractor, duties may transfer to the principal designer if the client and PD agree in writing. The client retains the duty to appoint a PD and PC where >1 contractor is involved.</p></div>';
+        gw.classList.add('resolved-amber');
+        badge.className = 'badge badge-amber'; badge.textContent = 'Domestic';
+    } else {
+        result.innerHTML = '<div class="result-box green"><div class="result-title">COMMERCIAL CLIENT — Standard Duties</div><p>Client holds full duties under Reg 11A. Client must make suitable arrangements for planning, managing and monitoring the project to ensure compliance.</p></div>';
+        gw.classList.add('resolved-pass');
+        badge.className = 'badge badge-green'; badge.textContent = 'Commercial';
+    }
+}
+
+function renderRegimeBanner() {
+    let regime, cls, title, desc;
+    if (state.gateways.schedule4Exempt) {
+        regime = 'exempt'; cls = 'exempt';
+        title = 'SCHEDULE 4 EXEMPT — Part 2A Does Not Apply';
+        desc = 'All work falls within Schedule 4 minor work categories. No PD/PC appointment required. Standard building control approval still needed.';
+    } else if (state.gateways.isHRB) {
+        regime = 'hrb'; cls = 'hrb';
+        title = 'PART 2A APPLIES — HIGHER-RISK BUILDING';
+        desc = 'Full duty holder regime with BSR oversight. Gateway 2 (before construction) and Gateway 3 (before occupation) submissions required. BSR is the mandatory building control route.';
+    } else {
+        regime = 'standard'; cls = 'standard';
+        title = 'PART 2A APPLIES — STANDARD BUILDING';
+        desc = 'Full duty holder regime applies. Client must appoint PD' + (state.project.contractorCount === '2+' ? ' and PC' : '') + '. Standard building control route (LA, Building Notice, or RBCA).';
+    }
+    state.regime = regime;
+    const bannerHTML = '<div class="regime-banner ' + cls + '"><h2>' + title + '</h2><p>' + desc + '</p></div>';
+    document.getElementById('regime-banner-container').innerHTML = bannerHTML;
+}
+
+function completeStep2() {
+    renderStep3();
+    goToStep(3);
+}
+
+// ============================================================
+// STEP 3: DETERMINATION RESULTS
+// ============================================================
+function renderStep3() {
+    // Echo regime banner
+    document.getElementById('regime-banner-echo').innerHTML = document.getElementById('regime-banner-container').innerHTML;
+
+    // Triggered parts with functional requirements
+    let partsHTML = '';
+    if (state.regime === 'exempt') {
+        partsHTML = '<div class="result-box green"><div class="result-title">Schedule 4 Exempt</div><p>No regulation parts to display — work is exempt from Part 2A.</p></div>';
+    } else {
+        partsHTML = '<table class="data-table"><thead><tr><th>Part</th><th>Title</th><th>Functional Requirements</th></tr></thead><tbody>';
+        state.scope.triggeredParts.forEach(code => {
+            const p = partsDefinitions[code];
+            if (!p) return;
+            partsHTML += '<tr><td style="font-weight:700;white-space:nowrap">' + code + '</td>';
+            partsHTML += '<td>' + p.name + '</td>';
+            partsHTML += '<td style="font-size:12px">' + p.functionalReqs.map(r => '• ' + r).join('<br>') + '</td></tr>';
+        });
+        partsHTML += '</tbody></table>';
+    }
+    document.getElementById('triggered-parts-detail').innerHTML = partsHTML;
+
+    // Duty holder regime
+    renderDutyHolderRegime();
+
+    // Competence standards
+    renderCompetenceStandards();
+
+    // BC route
+    renderBCRoute();
+}
+
+function renderDutyHolderRegime() {
+    const el = document.getElementById('dutyholder-regime');
+    if (state.regime === 'exempt') {
+        el.innerHTML = '<div class="result-box green"><div class="result-title">No Duty Holder Requirements</div><p>Schedule 4 exempt work — Part 2A duty holder regime does not apply.</p></div>';
+        return;
+    }
+    const multiContractor = state.project.contractorCount === '2+';
+    const isDomestic = state.gateways.domesticClient;
+    const isHRB = state.gateways.isHRB;
+
+    let html = '<table class="data-table"><thead><tr><th>Requirement</th><th>Applies?</th><th>Detail</th></tr></thead><tbody>';
+
+    html += '<tr><td style="font-weight:600">Client Duties (Reg 11A)</td>';
+    html += '<td><span class="badge badge-green">Yes</span></td>';
+    html += '<td>' + (isDomestic ? 'Domestic client — duties transfer to contractor (single) or PC (multiple) under Reg 11C, or to PD if agreed in writing. Client retains appointment duties.' : 'Full client duties apply. Must make suitable arrangements for compliance.') + '</td></tr>';
+
+    html += '<tr><td style="font-weight:600">Principal Designer (Reg 11D/11M)</td>';
+    if (multiContractor) {
+        html += '<td><span class="badge badge-green">Required</span></td>';
+        html += '<td>More than one contractor involved. Client must appoint PD in writing. PD must plan, manage and monitor design work.</td></tr>';
+    } else {
+        html += '<td><span class="badge badge-amber">Not Required*</span></td>';
+        html += '<td>Single contractor project — PD appointment not mandatory. Designer duties (Reg 11K) still apply. Client may still choose to appoint a PD.</td></tr>';
+    }
+
+    html += '<tr><td style="font-weight:600">Principal Contractor (Reg 11D/11N)</td>';
+    if (multiContractor) {
+        html += '<td><span class="badge badge-green">Required</span></td>';
+        html += '<td>More than one contractor involved. Client must appoint PC in writing.</td></tr>';
+    } else {
+        html += '<td><span class="badge badge-amber">Not Required*</span></td>';
+        html += '<td>Single contractor project — PC appointment not mandatory.</td></tr>';
+    }
+
+    html += '<tr><td style="font-weight:600">Designer Duties (Reg 11K)</td>';
+    html += '<td><span class="badge badge-green">Yes</span></td>';
+    html += '<td>All designers must not start design work unless satisfied the client is aware of their duties. Designers must take all reasonable steps to ensure design would comply with all relevant requirements if built as designed.</td></tr>';
+
+    html += '<tr><td style="font-weight:600">Contractor Duties (Reg 11L)</td>';
+    html += '<td><span class="badge badge-green">Yes</span></td>';
+    html += '<td>Contractors must not start building work unless satisfied the client is aware of their duties.</td></tr>';
+
+    if (isHRB) {
+        html += '<tr><td style="font-weight:600">BSR Gateway 2 (before construction)</td>';
+        html += '<td><span class="badge badge-red">Required</span></td>';
+        html += '<td>HRB — Client must submit building control approval application to BSR before construction begins.</td></tr>';
+
+        html += '<tr><td style="font-weight:600">BSR Gateway 3 (before occupation)</td>';
+        html += '<td><span class="badge badge-red">Required</span></td>';
+        html += '<td>HRB — Client must apply for completion certificate from BSR before occupation.</td></tr>';
+
+        html += '<tr><td style="font-weight:600">Reg 11B — HRB Information Provision</td>';
+        html += '<td><span class="badge badge-red">Required</span></td>';
+        html += '<td>HRB — Client must ensure designers and contractors are informed of and aware of the nature of higher-risk building work.</td></tr>';
+    }
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+function renderCompetenceStandards() {
+    const el = document.getElementById('competence-standards');
+    if (state.regime === 'exempt') {
+        el.innerHTML = '<p style="color:var(--text-light);font-style:italic">Schedule 4 exempt — no specific competence standards triggered.</p>';
+        return;
+    }
+    const isHRB = state.gateways.isHRB;
+    const multiContractor = state.project.contractorCount === '2+';
+    const standards = [
+        {code:'PAS 8671',role:'Principal Designer competence (Part 2A)',applies: multiContractor},
+        {code:'PAS 8672',role:'Principal Contractor competence (Part 2A)',applies: multiContractor},
+        {code:'PAS 8673',role:'Building Safety Manager — competence for management of safety in residential buildings (occupation phase)',applies: isHRB},
+        {code:'BS 8644-1',role:'Digital management of fire safety information',applies: true},
+        {code:'BS 8670-1:2024',role:'Core criteria for building safety in competence frameworks',applies: true},
+    ];
+    let html = '<table class="data-table"><thead><tr><th>Standard</th><th>Role / Purpose</th><th>Applies?</th></tr></thead><tbody>';
+    standards.forEach(s => {
+        html += '<tr><td style="font-weight:700">' + s.code + '</td><td>' + s.role + '</td>';
+        html += '<td>' + (s.applies ? '<span class="badge badge-green">✓ Yes</span>' : '<span class="badge badge-red">✗ No</span>') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+function renderBCRoute() {
+    const el = document.getElementById('bc-route-section');
+    const isHRB = state.gateways.isHRB;
+    let html = '';
+    if (isHRB) {
+        html += '<div class="result-box red"><div class="result-title">BSR Route Mandatory</div><p>Higher-Risk Building — the Building Safety Regulator (BSR) is the mandatory building control route. No choice of LA or RBCA.</p></div>';
+        html += '<div class="form-row"><div class="form-group"><label>Building Control Route</label><select id="bc-route" disabled><option value="bsr">Building Safety Regulator (mandatory)</option></select></div>';
+        html += '<div class="form-group"><label>Date of Decision</label><input type="date" id="bc-route-date" onchange="state.bcRoute.date=this.value"></div></div>';
+        state.bcRoute.chosen = 'bsr';
+    } else {
+        html += '<div class="result-box green"><div class="result-title">Client Chooses Route</div><p>Standard building — client can choose from Full Plans Application, Building Notice, or RBCA Initial Notice.</p></div>';
+        html += '<div class="form-row"><div class="form-group"><label>Building Control Route Chosen *</label><select id="bc-route" onchange="state.bcRoute.chosen=this.value">';
+        html += '<option value="">-- Select --</option>';
+        html += '<option value="fullplans">Full Plans Application (Local Authority)</option>';
+        html += '<option value="notice">Building Notice (Local Authority)</option>';
+        html += '<option value="rbca">Initial Notice via RBCA</option>';
+        html += '</select></div>';
+        html += '<div class="form-group"><label>Date of Decision</label><input type="date" id="bc-route-date" onchange="state.bcRoute.date=this.value"></div></div>';
+    }
+
+    // Reg 12 checks
+    html += '<div style="margin-top:16px"><p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px">REGULATION 12 ADDITIONAL CHECKS</p>';
+    html += '<div style="display:grid;gap:6px">';
+    ['Fire Safety Order applies to building','Private street (Highways Act 1980)','Drainage requirements (building in shallow mines)','Competent person scheme work (electrical, gas, etc.)'].forEach((label, i) => {
+        html += '<label style="display:flex;gap:8px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:13px;cursor:pointer"><input type="checkbox" class="reg12-check" value="' + i + '"> ' + label + '</label>';
+    });
+    html += '</div></div>';
+    el.innerHTML = html;
+}
+
+function completeStep3() {
+    renderStep4();
+    goToStep(4);
+}
+
+// ============================================================
+// STEP 4: TEAM & ALLOCATION
+// ============================================================
+function renderStep4() {
+    renderDutyHoldersList();
+    renderDesignerList();
+    renderAllocationMatrix();
+    renderAppointmentList();
+}
+
+function renderDesignerList() {
+    const el = document.getElementById('designer-list');
+    if (state.designers.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light);font-style:italic;margin-bottom:10px">No designers added yet. Add your project design team below.</p>';
+        return;
+    }
+    let html = '';
+    state.designers.forEach((d, i) => {
+        html += '<div class="designer-card"><div class="designer-info"><h4>' + d.name + '</h4><p>' + d.company + ' — ' + d.specialism + '</p></div>';
+        html += '<button class="btn btn-red btn-small" onclick="removeDesigner(' + i + ')">Remove</button></div>';
+    });
+    el.innerHTML = html;
+}
+
+// ============================================================
+// DUTY HOLDERS
+// ============================================================
+function addDutyHolder() {
+    var role = document.getElementById('dh-role').value;
+    var person = document.getElementById('dh-person').value.trim();
+    var company = document.getElementById('dh-company').value.trim();
+    if (!role || !person || !company) { alert('Please fill in Role, Named Person and Company.'); return; }
+    state.dutyHolders.push({
+        role: role,
+        person: person,
+        company: company,
+        email: document.getElementById('dh-email').value.trim(),
+        address: document.getElementById('dh-address').value.trim(),
+        phone: document.getElementById('dh-phone').value.trim(),
+        stageCoverage: document.getElementById('dh-stage-coverage').value.trim(),
+        qualifications: document.getElementById('dh-qualifications').value.trim()
+    });
+    // Clear form
+    ['dh-role','dh-person','dh-company','dh-email','dh-address','dh-phone','dh-stage-coverage','dh-qualifications'].forEach(function(id) {
+        document.getElementById(id).value = '';
+    });
+    renderDutyHoldersList();
+}
+
+function removeDutyHolder(i) {
+    if (!confirm('Remove ' + state.dutyHolders[i].person + ' (' + state.dutyHolders[i].role + ')?')) return;
+    state.dutyHolders.splice(i, 1);
+    renderDutyHoldersList();
+}
+
+function editDutyHolder(i) {
+    var dh = state.dutyHolders[i];
+    var card = document.getElementById('dh-card-' + i);
+    if (!card) return;
+    var html = '<div class="dh-role">' + dh.role + '</div>';
+    html += '<div class="dh-form-grid">';
+    html += '<div><label>Named Person</label><input type="text" id="dh-edit-person-' + i + '" value="' + (dh.person || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div><label>Company</label><input type="text" id="dh-edit-company-' + i + '" value="' + (dh.company || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div><label>Email</label><input type="text" id="dh-edit-email-' + i + '" value="' + (dh.email || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div><label>Phone</label><input type="text" id="dh-edit-phone-' + i + '" value="' + (dh.phone || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div style="grid-column:1/-1"><label>Address</label><input type="text" id="dh-edit-address-' + i + '" value="' + (dh.address || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div><label>RIBA Stage Coverage</label><input type="text" id="dh-edit-stage-' + i + '" value="' + (dh.stageCoverage || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '<div><label>Qualifications</label><input type="text" id="dh-edit-quals-' + i + '" value="' + (dh.qualifications || '').replace(/"/g,'&quot;') + '"></div>';
+    html += '</div>';
+    html += '<div class="dh-actions"><button class="btn btn-green btn-small" onclick="saveDutyHolder(' + i + ')">Save</button>';
+    html += '<button class="btn btn-secondary btn-small" onclick="renderDutyHoldersList()">Cancel</button></div>';
+    card.innerHTML = html;
+}
+
+function saveDutyHolder(i) {
+    state.dutyHolders[i].person = document.getElementById('dh-edit-person-' + i).value.trim();
+    state.dutyHolders[i].company = document.getElementById('dh-edit-company-' + i).value.trim();
+    state.dutyHolders[i].email = document.getElementById('dh-edit-email-' + i).value.trim();
+    state.dutyHolders[i].phone = document.getElementById('dh-edit-phone-' + i).value.trim();
+    state.dutyHolders[i].address = document.getElementById('dh-edit-address-' + i).value.trim();
+    state.dutyHolders[i].stageCoverage = document.getElementById('dh-edit-stage-' + i).value.trim();
+    state.dutyHolders[i].qualifications = document.getElementById('dh-edit-quals-' + i).value.trim();
+    renderDutyHoldersList();
+}
+
+function renderDutyHoldersList() {
+    var el = document.getElementById('duty-holders-list');
+    if (!el) return;
+    if (state.dutyHolders.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light);font-style:italic">No duty holders added yet. Use the form below to add the project team contacts.</p>';
+        return;
+    }
+    var html = '';
+    state.dutyHolders.forEach(function(dh, i) {
+        html += '<div class="dh-card" id="dh-card-' + i + '">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+        html += '<div style="flex:1">';
+        html += '<div class="dh-role">' + dh.role + (dh.stageCoverage ? ' (' + dh.stageCoverage + ')' : '') + '</div>';
+        html += '<h4>' + dh.person + '</h4>';
+        html += '<div class="dh-detail">' + dh.company;
+        if (dh.qualifications) html += ' &mdash; ' + dh.qualifications;
+        html += '</div>';
+        if (dh.address) html += '<div class="dh-detail">' + dh.address + '</div>';
+        var contacts = [];
+        if (dh.phone) contacts.push(dh.phone);
+        if (dh.email) contacts.push(dh.email);
+        if (contacts.length) html += '<div class="dh-detail">' + contacts.join(' &bull; ') + '</div>';
+        html += '</div>';
+        html += '<div style="display:flex;gap:6px">';
+        html += '<button class="btn btn-secondary btn-small" onclick="editDutyHolder(' + i + ')">Edit</button>';
+        html += '<button class="btn btn-red btn-small" onclick="removeDutyHolder(' + i + ')">Remove</button>';
+        html += '</div></div></div>';
+    });
+    el.innerHTML = html;
+}
+
+function addDesigner() {
+    const name = document.getElementById('new-designer-name').value.trim();
+    const company = document.getElementById('new-designer-company').value.trim();
+    const specialism = document.getElementById('new-designer-specialism').value.trim();
+    if (!name || !company || !specialism) { alert('Please fill in all designer fields.'); return; }
+    state.designers.push({name, company, specialism});
+    document.getElementById('new-designer-name').value = '';
+    document.getElementById('new-designer-company').value = '';
+    document.getElementById('new-designer-specialism').value = '';
+    renderDesignerList();
+    renderAllocationMatrix();
+}
+
+function removeDesigner(i) {
+    state.designers.splice(i, 1);
+    // Clean up allocations
+    Object.keys(state.allocations).forEach(part => {
+        state.allocations[part] = (state.allocations[part] || []).filter(idx => idx !== i).map(idx => idx > i ? idx - 1 : idx);
+    });
+    renderDesignerList();
+    renderAllocationMatrix();
+}
+
+function renderAllocationMatrix() {
+    const el = document.getElementById('allocation-matrix');
+    if (state.scope.triggeredParts.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light)">No triggered parts to allocate.</p>';
+        return;
+    }
+    if (state.designers.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light)">Add designers above before allocating regulation parts.</p>';
+        return;
+    }
+    let html = '<table class="data-table"><thead><tr><th>Part</th><th style="min-width:200px">Title</th><th>Allocated Designer(s)</th></tr></thead><tbody>';
+    state.scope.triggeredParts.forEach(code => {
+        const p = partsDefinitions[code];
+        if (!p) return;
+        const currentAlloc = state.allocations[code] || [];
+        html += '<tr><td style="font-weight:700;white-space:nowrap">' + code + '</td>';
+        html += '<td style="font-size:12px">' + p.name + '</td>';
+        html += '<td>';
+        state.designers.forEach((d, i) => {
+            const checked = currentAlloc.includes(i);
+            html += '<label style="display:flex;gap:6px;align-items:center;font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;cursor:pointer;margin-bottom:2px">';
+            html += '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleAllocation(\'' + code + '\',' + i + ',this.checked)">';
+            html += d.name + ' (' + d.specialism + ')</label>';
+        });
+        html += '</td></tr>';
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+}
+
+function toggleAllocation(part, designerIdx, checked) {
+    if (!state.allocations[part]) state.allocations[part] = [];
+    if (checked) {
+        if (!state.allocations[part].includes(designerIdx)) state.allocations[part].push(designerIdx);
+    } else {
+        state.allocations[part] = state.allocations[part].filter(i => i !== designerIdx);
+    }
+}
+
+function renderAppointmentList() {
+    const el = document.getElementById('appointment-list');
+    if (state.appointments.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light);font-style:italic;margin-bottom:10px">No appointments recorded yet.</p>';
+        return;
+    }
+    let html = '';
+    state.appointments.forEach((a, i) => {
+        html += '<div class="appt-card"><div class="appt-role">' + a.role + '</div><h4>' + a.name + '</h4>';
+        html += '<p style="font-size:12px;color:var(--text-light)">' + (a.org || '') + (a.specialism ? ' — ' + a.specialism : '') + ' | Appointed: ' + (a.date || 'N/A') + '</p>';
+        html += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">';
+        if (a.written) html += '<span class="badge badge-green">Written ✓</span>';
+        if (a.competence) html += '<span class="badge badge-green">Competence ✓</span>';
+        if (a.accepted) html += '<span class="badge badge-green">Accepted ✓</span>';
+        if (!a.written) html += '<span class="badge badge-red">Not in writing</span>';
+        if (!a.competence) html += '<span class="badge badge-amber">Competence not verified</span>';
+        html += '</div>';
+        html += '<button class="btn btn-red btn-small" style="margin-top:8px" onclick="removeAppointment(' + i + ')">Remove</button></div>';
+    });
+    el.innerHTML = html;
+}
+
+function addAppointment() {
+    const role = document.getElementById('appt-role').value;
+    const name = document.getElementById('appt-name').value.trim();
+    if (!role || !name) { alert('Please select a role and enter a name.'); return; }
+    state.appointments.push({
+        role, name,
+        org: document.getElementById('appt-org').value.trim(),
+        date: document.getElementById('appt-date').value,
+        specialism: document.getElementById('appt-specialism').value.trim(),
+        written: document.getElementById('appt-written').checked,
+        competence: document.getElementById('appt-competence').checked,
+        accepted: document.getElementById('appt-accepted').checked
+    });
+    // Clear form
+    document.getElementById('appt-role').value = '';
+    document.getElementById('appt-name').value = '';
+    document.getElementById('appt-org').value = '';
+    document.getElementById('appt-date').value = '';
+    document.getElementById('appt-specialism').value = '';
+    document.getElementById('appt-written').checked = false;
+    document.getElementById('appt-competence').checked = false;
+    document.getElementById('appt-accepted').checked = false;
+    renderAppointmentList();
+}
+
+function removeAppointment(i) {
+    state.appointments.splice(i, 1);
+    renderAppointmentList();
+}
+
+function completeStep4() {
+    renderStep5();
+    goToStep(5);
+}
+
+// ============================================================
+// STEP 5: OUTPUTS
+// ============================================================
+function renderStep5() {
+    // Regime banner
+    document.getElementById('regime-banner-final').innerHTML = document.getElementById('regime-banner-container').innerHTML;
+    // Declaration tracker
+    renderDeclarationTracker();
+    // Saved assessments
+    renderSavedAssessments();
+}
+
+function renderDeclarationTracker() {
+    const el = document.getElementById('declaration-tracker-table');
+    if (state.regime === 'exempt') {
+        el.innerHTML = '<div class="result-box green"><div class="result-title">Not Applicable</div><p>Schedule 4 exempt work — Reg 11Q compliance declarations are not required.</p></div>';
+        return;
+    }
+    const multiContractor = state.project.contractorCount === '2+';
+    let rows = [];
+    if (multiContractor) {
+        rows.push({role:'Principal Designer',person:state.appointments.find(a => a.role === 'Principal Designer')?.name || 'TBC',duty:'Confirm fulfilment of Reg 11M duties (planning, managing, monitoring, coordinating design work)',when:'With completion certificate application',status:'Pending'});
+        rows.push({role:'Principal Contractor',person:state.appointments.find(a => a.role === 'Principal Contractor')?.name || 'TBC',duty:'Confirm fulfilment of Reg 11N duties (planning, managing, monitoring construction)',when:'With completion certificate application',status:'Pending'});
+    }
+    // All designers
+    state.designers.forEach(d => {
+        rows.push({role:'Designer',person:d.name + ' (' + d.specialism + ')',duty:'Confirm fulfilment of Reg 11K duties (took all reasonable steps to ensure design would comply if built as designed)',when:'With completion certificate application',status:'Pending'});
+    });
+    // Contractors from appointments
+    state.appointments.filter(a => a.role === 'Contractor').forEach(a => {
+        rows.push({role:'Contractor',person:a.name,duty:'Confirm fulfilment of Reg 11L duties (building work complies)',when:'With completion certificate application',status:'Pending'});
+    });
+    if (rows.length === 0) {
+        rows.push({role:'Principal Designer',person:'TBC',duty:'Reg 11M duties',when:'At completion',status:'Pending'});
+        rows.push({role:'Principal Contractor',person:'TBC',duty:'Reg 11N duties',when:'At completion',status:'Pending'});
+    }
+
+    let html = '<table class="data-table"><thead><tr><th>Role</th><th>Person / Org</th><th>Declaration Confirms</th><th>When Required</th><th>Status</th></tr></thead><tbody>';
+    rows.forEach(r => {
+        html += '<tr><td style="font-weight:600">' + r.role + '</td><td>' + r.person + '</td><td style="font-size:12px">' + r.duty + '</td><td style="font-size:12px">' + r.when + '</td>';
+        html += '<td><span class="badge badge-amber">' + r.status + '</span></td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p style="font-size:11px;color:var(--text-light);margin-top:10px;font-style:italic">Note: Compliance declarations confirm that each duty holder fulfilled THEIR specific Part 2A duties. They do NOT confirm that the building itself complies with all Building Regulations. Declarations are completed at project completion, not during the design/scoping phase.</p>';
+    el.innerHTML = html;
+}
+
+// ============================================================
+// PDF REPORT GENERATION
+// ============================================================
+function generateScopeReport() {
+    const w = window.open('','_blank','width=900,height=700');
+    const bcRouteLabels = {bsr:'Building Safety Regulator',fullplans:'Full Plans Application (LA)',notice:'Building Notice (LA)',rbca:'Initial Notice via RBCA'};
+    let html = '<!DOCTYPE html><html><head><title>Scope Determination Report</title><style>';
+    html += 'body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#2c3e50;line-height:1.6;font-size:13px}';
+    html += 'h1{color:#1a5276;font-size:22px;border-bottom:3px solid #1a5276;padding-bottom:8px}';
+    html += 'h2{color:#1a5276;font-size:16px;border-bottom:2px solid #dce1e8;padding-bottom:6px;margin-top:28px}';
+    html += 'table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px}';
+    html += 'th{background:#1a5276;color:#fff;padding:8px 10px;text-align:left}';
+    html += 'td{padding:8px 10px;border-bottom:1px solid #dce1e8}';
+    html += '.banner{padding:14px 18px;border-radius:6px;color:#fff;text-align:center;margin:16px 0;font-weight:700;font-size:15px}';
+    html += '.exempt{background:#27ae60}.standard{background:#f39c12}.hrb{background:#e74c3c}';
+    html += '.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}';
+    html += '.badge-g{background:#eafaf1;color:#27ae60}.badge-r{background:#fdf2f1;color:#e74c3c}.badge-a{background:#fef9e7;color:#f39c12}';
+    html += '@media print{body{padding:20px}h1{font-size:18px}}';
+    html += '</style></head><body>';
+
+    html += '<h1>SCOPE DETERMINATION REPORT</h1>';
+    html += '<p><strong>Generated:</strong> ' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + '</p>';
+
+    html += '<h2>PROJECT DETAILS</h2>';
+    html += '<table><tbody>';
+    html += '<tr><td style="font-weight:600;width:200px">Project</td><td>' + (state.project.name || '—') + '</td></tr>';
+    html += '<tr><td style="font-weight:600">Client</td><td>' + (state.project.client || '—') + ' (' + (state.project.clientType === 'domestic' ? 'Domestic' : 'Commercial') + ')</td></tr>';
+    html += '<tr><td style="font-weight:600">Address</td><td>' + (state.project.address || '—') + '</td></tr>';
+    html += '<tr><td style="font-weight:600">Date of Assessment</td><td>' + (state.project.date || '—') + '</td></tr>';
+    html += '<tr><td style="font-weight:600">Assessed by (PD)</td><td>' + (state.project.assessor || '—') + (state.project.assessorOrg ? ', ' + state.project.assessorOrg : '') + '</td></tr>';
+    html += '<tr><td style="font-weight:600">Number of Contractors</td><td>' + (state.project.contractorCount === '2+' ? 'More than 1' : '1') + '</td></tr>';
+    html += '</tbody></table>';
+
+    if (state.project.description) html += '<p style="margin-top:8px"><strong>Description:</strong> ' + state.project.description + '</p>';
+
+    // Regime banner
+    const regimeLabels = {exempt:'SCHEDULE 4 EXEMPT',standard:'PART 2A APPLIES — STANDARD BUILDING',hrb:'PART 2A APPLIES — HIGHER-RISK BUILDING'};
+    html += '<div class="banner ' + state.regime + '">' + regimeLabels[state.regime] + '</div>';
+
+    // Scope
+    html += '<h2>SCOPE OF WORKS</h2><table><thead><tr><th>Work Type</th><th>Schedule 4?</th></tr></thead><tbody>';
+    state.scope.selected.forEach(id => {
+        const item = workTypes.flatMap(c => c.items).find(i => i.id === id);
+        html += '<tr><td>' + item.label + '</td><td>' + (schedule4Exempt[id] ? '<span class="badge badge-g">Exempt</span>' : '<span class="badge badge-r">Not Exempt</span>') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+
+    // Triggered parts
+    if (state.regime !== 'exempt') {
+        html += '<h2>TRIGGERED BUILDING REGULATION PARTS</h2><table><thead><tr><th>Part</th><th>Title</th><th>Allocated Designer</th></tr></thead><tbody>';
+        state.scope.triggeredParts.forEach(code => {
+            const p = partsDefinitions[code];
+            if (!p) return;
+            const alloc = (state.allocations[code] || []).map(i => state.designers[i]?.name).filter(Boolean).join(', ') || '<em>Not assigned</em>';
+            html += '<tr><td style="font-weight:700">' + code + '</td><td>' + p.name + '</td><td>' + alloc + '</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        // HRB
+        html += '<h2>HRB DETERMINATION</h2>';
+        html += '<p>' + (state.gateways.isHRB ? '<strong style="color:#e74c3c">HIGHER-RISK BUILDING</strong>' : '<strong style="color:#27ae60">Standard Building (Not HRB)</strong>');
+        html += ' — Height: ' + state.gateways.hrbHeight + 'm, Storeys: ' + state.gateways.hrbStoreys + ', Type: ' + state.gateways.hrbType + '</p>';
+
+        // BC Route
+        html += '<h2>BUILDING CONTROL ROUTE</h2>';
+        html += '<p><strong>Route:</strong> ' + (bcRouteLabels[state.bcRoute.chosen] || 'Not selected') + '</p>';
+
+        // Duty holders
+        html += '<h2>DUTY HOLDER REQUIREMENTS</h2>';
+        html += document.getElementById('dutyholder-regime').innerHTML;
+
+        // Appointments
+        if (state.appointments.length > 0) {
+            html += '<h2>APPOINTMENTS</h2><table><thead><tr><th>Role</th><th>Name</th><th>Organisation</th><th>Date</th><th>Written?</th><th>Competence?</th></tr></thead><tbody>';
+            state.appointments.forEach(a => {
+                html += '<tr><td style="font-weight:600">' + a.role + '</td><td>' + a.name + '</td><td>' + (a.org||'—') + '</td><td>' + (a.date||'—') + '</td>';
+                html += '<td>' + (a.written ? '<span class="badge badge-g">Yes</span>' : '<span class="badge badge-r">No</span>') + '</td>';
+                html += '<td>' + (a.competence ? '<span class="badge badge-g">Yes</span>' : '<span class="badge badge-a">Pending</span>') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+        }
+
+        // Team
+        if (state.designers.length > 0) {
+            html += '<h2>PROJECT DESIGN TEAM</h2><table><thead><tr><th>Name</th><th>Company</th><th>Specialism</th><th>Allocated Parts</th></tr></thead><tbody>';
+            state.designers.forEach((d, i) => {
+                const parts = Object.keys(state.allocations).filter(k => (state.allocations[k]||[]).includes(i));
+                html += '<tr><td style="font-weight:600">' + d.name + '</td><td>' + d.company + '</td><td>' + d.specialism + '</td>';
+                html += '<td>' + (parts.length > 0 ? parts.join(', ') : '<em>None</em>') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+        }
+    }
+
+    html += '<h2>ASSESSOR SIGN-OFF</h2>';
+    html += '<table style="margin-top:20px"><tbody>';
+    html += '<tr><td style="width:50%;padding:30px 10px 10px">Signature: ________________________</td><td style="padding:30px 10px 10px">Name: ' + (state.project.assessor || '________________________') + '</td></tr>';
+    html += '<tr><td style="padding:10px">Date: ________________________</td><td style="padding:10px">Title: Principal Designer</td></tr>';
+    html += '</tbody></table>';
+
+    html += '</body></html>';
+    w.document.write(html);
+    w.document.close();
+}
+
+function generateDRM() {
+    if (state.designers.length === 0) { alert('Add designers in Step 4 before generating the DRM.'); return; }
+    const w = window.open('','_blank','width=900,height=700');
+    let html = '<!DOCTYPE html><html><head><title>Design Responsibility Matrix</title><style>';
+    html += 'body{font-family:Arial,sans-serif;max-width:900px;margin:0 auto;padding:40px;color:#2c3e50;font-size:13px}';
+    html += 'h1{color:#1a5276;font-size:20px;border-bottom:3px solid #1a5276;padding-bottom:8px}';
+    html += 'table{width:100%;border-collapse:collapse;margin:16px 0;font-size:11px}';
+    html += 'th{background:#1a5276;color:#fff;padding:8px;text-align:left}';
+    html += 'td{padding:8px;border:1px solid #dce1e8;vertical-align:top}';
+    html += '</style></head><body>';
+    html += '<h1>DESIGN RESPONSIBILITY MATRIX</h1>';
+    html += '<p><strong>Project:</strong> ' + state.project.name + ' | <strong>Date:</strong> ' + new Date().toLocaleDateString('en-GB') + ' | <strong>PD:</strong> ' + state.project.assessor + '</p>';
+    html += '<table><thead><tr><th>Part</th><th>Title</th><th>Functional Requirements</th><th>Allocated Designer(s)</th></tr></thead><tbody>';
+    state.scope.triggeredParts.forEach(code => {
+        const p = partsDefinitions[code]; if (!p) return;
+        const alloc = (state.allocations[code]||[]).map(i => state.designers[i] ? state.designers[i].name + ' (' + state.designers[i].specialism + ')' : '').filter(Boolean).join('<br>') || '<em>Not assigned</em>';
+        html += '<tr><td style="font-weight:700">' + code + '</td><td>' + p.name + '</td>';
+        html += '<td>' + p.functionalReqs.map(r => '• ' + r).join('<br>') + '</td>';
+        html += '<td>' + alloc + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p style="font-size:10px;color:#7f8c8d;margin-top:20px">Generated from PD Scope Determination Tool. This matrix should be reviewed and agreed with all designers at project commencement.</p>';
+    html += '</body></html>';
+    w.document.write(html);
+    w.document.close();
+}
+
+function generateClientLetter() {
+    const w = window.open('','_blank','width=900,height=700');
+    const isDomestic = state.gateways.domesticClient;
+    const multiContractor = state.project.contractorCount === '2+';
+    const isHRB = state.gateways.isHRB;
+    let html = '<!DOCTYPE html><html><head><title>Client Duties Letter</title><style>';
+    html += 'body{font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:50px;color:#2c3e50;line-height:1.8;font-size:13px}';
+    html += 'h1{color:#1a5276;font-size:18px;margin-bottom:20px}';
+    html += '.duty{background:#eaf2f8;border-left:4px solid #1a5276;padding:12px 16px;margin:12px 0;border-radius:0 6px 6px 0}';
+    html += '</style></head><body>';
+    html += '<p style="text-align:right">' + new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + '</p>';
+    html += '<p><strong>FAO:</strong> ' + (state.project.client || '[Client Name]') + '</p>';
+    html += '<p><strong>RE:</strong> ' + (state.project.name || '[Project Name]') + (state.project.address ? ', ' + state.project.address : '') + '</p>';
+    html += '<h1>Client Duties Under Part 2A — Building Regulations 2010 (as amended)</h1>';
+
+    html += '<p>Dear ' + (state.project.client || 'Client') + ',</p>';
+    html += '<p>As the appointed Principal Designer for the above project, I am writing to advise you of your duties as Client under Part 2A of the Building Regulations 2010 (as amended by SI 2023/911). These duties came into force on 1 October 2023 and apply to all building work requiring building control approval.</p>';
+
+    if (isDomestic) {
+        html += '<div class="duty"><strong>Domestic Client (Reg 11C):</strong> As a domestic client, your duties under Reg 11A are automatically transferred to the ' + (multiContractor ? 'Principal Contractor (or to the Principal Designer if agreed in writing)' : 'contractor') + '. You retain the duty to make appointments where required.</div>';
+    }
+
+    html += '<div class="duty"><strong>Reg 11A — Suitable Arrangements:</strong> You must make suitable arrangements for planning, managing and monitoring the project, including ensuring that building work complies with all relevant requirements of the Building Regulations.</div>';
+
+    if (multiContractor) {
+        html += '<div class="duty"><strong>Reg 11D — Appointments:</strong> As more than one contractor is (or is foreseeably) involved, you must appoint in writing: a Principal Designer (to plan, manage and monitor design work) and a Principal Contractor (to plan, manage and monitor building work).</div>';
+    }
+
+    html += '<div class="duty"><strong>Reg 11E — Competence:</strong> Before appointing any person to carry out design or building work, you must take all reasonable steps to satisfy yourself that they are competent (possessing the skills, knowledge, experience and organisational capability required).</div>';
+
+    if (isHRB) {
+        html += '<div class="duty"><strong>Reg 11B — HRB Information Provision:</strong> As this is a Higher-Risk Building, you must make suitable arrangements to ensure designers and contractors are informed that the project includes higher-risk building work and are made aware of the nature of that work.</div>';
+        html += '<div class="duty"><strong>BSR Gateways:</strong> You must submit a building control approval application to the Building Safety Regulator (Gateway 2) before construction begins, and apply for a completion certificate (Gateway 3) before occupation.</div>';
+    }
+
+    html += '<div class="duty"><strong>Reg 11O — Client Change Notification:</strong> If the client changes during the project, the new client must notify Building Control within 14 days. Note: this regulation applies to client changes only, not to changes in PD, PC, designers or contractors.</div>';
+
+    html += '<p style="margin-top:20px">Please do not hesitate to contact me if you require any clarification on your duties.</p>';
+    html += '<p>Yours sincerely,</p>';
+    html += '<p style="margin-top:30px"><strong>' + (state.project.assessor || '[PD Name]') + '</strong><br>' + (state.project.assessorOrg || '[Organisation]') + '<br>Principal Designer</p>';
+    html += '</body></html>';
+    w.document.write(html);
+    w.document.close();
+}
+
+function showDeclarationTracker() {
+    goToStep(5);
+    setTimeout(() => {
+        document.getElementById('declaration-tracker-table').scrollIntoView({behavior:'smooth'});
+    }, 200);
+}
+
+// ============================================================
+// SAVE / LOAD
+// ============================================================
+function saveAssessment() {
+    collectProjectDetails();
+    const key = 'pd-scope-' + (state.project.name || 'unnamed').replace(/[^a-zA-Z0-9]/g,'-') + '-' + Date.now();
+    const data = JSON.stringify({state, timestamp: new Date().toISOString()});
+    try {
+        localStorage.setItem(key, data);
+        alert('Assessment saved: ' + state.project.name);
+        renderSavedAssessments();
+    } catch(e) {
+        alert('Save failed: ' + e.message);
+    }
+}
+
+function renderSavedAssessments() {
+    const el = document.getElementById('saved-assessments');
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k.startsWith('pd-scope-')) keys.push(k);
+    }
+    if (keys.length === 0) {
+        el.innerHTML = '<p style="color:var(--text-light);font-style:italic">No saved assessments.</p>';
+        return;
+    }
+    let html = '<p style="font-size:12px;font-weight:600;color:var(--primary);margin-bottom:8px">SAVED ASSESSMENTS</p>';
+    keys.forEach(k => {
+        try {
+            const d = JSON.parse(localStorage.getItem(k));
+            const name = d.state?.project?.name || 'Unnamed';
+            const date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('en-GB') : '';
+            html += '<div class="designer-card"><div class="designer-info"><h4>' + name + '</h4><p>Saved: ' + date + '</p></div>';
+            html += '<div style="display:flex;gap:6px"><button class="btn btn-primary btn-small" onclick="loadAssessment(\'' + k + '\')">Load</button>';
+            html += '<button class="btn btn-red btn-small" onclick="deleteAssessment(\'' + k + '\')">Delete</button></div></div>';
+        } catch(e) {}
+    });
+    el.innerHTML = html;
+}
+
+function loadAssessment(key) {
+    try {
+        const d = JSON.parse(localStorage.getItem(key));
+        restoreState(d.state);
+        alert('Loaded: ' + state.project.name);
+    } catch(e) {
+        alert('Failed to load: ' + e.message);
+    }
+}
+
+function deleteAssessment(key) {
+    if (confirm('Delete this saved assessment?')) {
+        localStorage.removeItem(key);
+        renderSavedAssessments();
+    }
+}
+
+function saveAsHTML() {
+    collectProjectDetails();
+
+    // Build v1-compatible assessment object so Design Review Tool can import
+    const designerRegistry = state.designers.map((d, i) => ({
+        id: 'D' + (i + 1),
+        name: d.name,
+        company: d.company || '',
+        specialism: d.specialism || ''
+    }));
+
+    const partsDesigners = {};
+    Object.keys(state.allocations).forEach(partCode => {
+        partsDesigners[partCode] = (state.allocations[partCode] || []).map(idx => 'D' + (idx + 1));
+    });
+
+    const assessment = {
+        project: {
+            name: state.project.name,
+            client: state.project.client,
+            address: state.project.address,
+            assessor: state.project.assessor,
+            assessorOrg: state.project.assessorOrg,
+            date: state.project.date,
+            description: state.project.description,
+            clientType: state.project.clientType,
+            contractorCount: state.project.contractorCount,
+            buildingUse: state.project.buildingUse || '',
+            ribaDates: state.project.ribaDates || {}
+        },
+        dutyHolders: state.dutyHolders || [],
+        designerRegistry: designerRegistry,
+        parts: {
+            triggered: state.scope.triggeredParts,
+            designers: partsDesigners
+        },
+        appointments: state.appointments.map(a => ({
+            role: a.role || '',
+            name: a.name || '',
+            organisation: a.org || '',
+            date: a.date || '',
+            specialism: a.specialism || '',
+            confirmWritten: !!a.written,
+            confirmCompetence: !!a.competence,
+            confirmAccepted: !!a.accepted,
+            confirmDuties: true
+        })),
+        schedule4: { exempt: state.gateways.schedule4Exempt },
+        hrb: {
+            isHRB: state.gateways.isHRB,
+            height: state.gateways.hrbHeight,
+            storeys: state.gateways.hrbStoreys,
+            type: state.gateways.hrbType,
+            exclusions: state.gateways.hrbExclusions
+        },
+        bcRoute: state.bcRoute,
+        scope: { selected: state.scope.selected, triggeredParts: state.scope.triggeredParts },
+        regime: state.regime,
+        dutyholder: {
+            domesticClient: state.gateways.domesticClient,
+            clientType: state.project.clientType,
+            multipleContractors: state.project.contractorCount === '2+'
+        }
+    };
+
+    const data = JSON.stringify({
+        state: state,
+        assessment: assessment,
+        version: 2,
+        timestamp: new Date().toISOString()
+    });
+
+    // Save the full app HTML with data embedded — so the exported file is a fully working app
+    const fullHTML = document.documentElement.outerHTML;
+    // Replace embedded-data tag contents (whether empty or already has data from a previous save)
+    const injected = fullHTML.replace(
+        /<script id="embedded-data" type="application\/json">[^]*?<\/script>/,
+        '<script id="embedded-data" type="application/json">' + data + '</' + 'script>'
+    );
+
+    const blob = new Blob(['<!DOCTYPE html>\n' + injected], {type:'text/html'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'PD-Scope-' + (state.project.name || 'Export').replace(/[^a-zA-Z0-9]/g,'-') + '.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function startNew() {
+    if (!confirm('Start a new assessment? Unsaved changes will be lost.')) return;
+    state = {
+        project:{name:'',client:'',address:'',date:'',assessor:'',assessorOrg:'',description:'',clientType:'',contractorCount:'',buildingUse:'',ribaDates:{}},
+        scope:{selected:[],triggeredParts:[]},
+        gateways:{schedule4Exempt:null,isHRB:false,hrbHeight:0,hrbStoreys:0,hrbType:'none',hrbExclusions:[],domesticClient:false},
+        regime:'',bcRoute:{chosen:'',date:''},designers:[],allocations:{},appointments:[],dutyHolders:[]
+    };
+    document.querySelectorAll('input,textarea,select').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.defaultChecked;
+        else el.value = el.defaultValue || '';
+    });
+    renderScopeItems();
+    updateTriggeredParts();
+    goToStep(1);
+}
+
+// ============================================================
+// IMPORT FROM HTML FILE
+// ============================================================
+function loadFromHTML() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.html';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(ev.target.result, 'text/html');
+                const dataEl = doc.getElementById('embedded-data');
+                if (!dataEl || !dataEl.textContent.trim()) {
+                    alert('No embedded data found in the selected file.');
+                    return;
+                }
+                const imported = JSON.parse(dataEl.textContent);
+                // v2 format stores {state, assessment, version, timestamp}
+                if (imported.state) {
+                    restoreState(imported.state);
+                    alert('Loaded from file: ' + (state.project.name || 'Unnamed'));
+                } else {
+                    alert('This file does not contain a v2 scope assessment. Try the Design Review Tool import instead.');
+                }
+            } catch(err) {
+                alert('Error reading file: ' + err.message);
+                console.error('Import error:', err);
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function restoreState(s) {
+    state = s;
+    // Ensure all expected properties exist (backwards compat)
+    if (!state.project) state.project = {};
+    if (!state.scope) state.scope = {selected:[], triggeredParts:[]};
+    if (!state.gateways) state.gateways = {schedule4Exempt:null, isHRB:false, hrbHeight:0, hrbStoreys:0, hrbType:'none', hrbExclusions:[], domesticClient:false};
+    if (!state.designers) state.designers = [];
+    if (!state.allocations) state.allocations = {};
+    if (!state.appointments) state.appointments = [];
+    if (!state.bcRoute) state.bcRoute = {chosen:'', date:''};
+    if (!state.dutyHolders) state.dutyHolders = [];
+    if (!state.project.ribaDates) state.project.ribaDates = {};
+
+    // Populate Step 1 form fields
+    document.getElementById('project-name').value = state.project.name || '';
+    document.getElementById('client-name').value = state.project.client || '';
+    document.getElementById('site-address').value = state.project.address || '';
+    document.getElementById('assess-date').value = state.project.date || '';
+    document.getElementById('assessor-name').value = state.project.assessor || '';
+    document.getElementById('assessor-org').value = state.project.assessorOrg || '';
+    document.getElementById('work-description').value = state.project.description || '';
+    document.getElementById('client-type').value = state.project.clientType || '';
+    document.getElementById('contractor-count').value = state.project.contractorCount || '';
+    document.getElementById('building-use').value = state.project.buildingUse || '';
+    // Restore RIBA dates
+    ['0','1','2','3','4a','4b','5','6','7'].forEach(function(s) {
+        var startEl = document.getElementById('riba-' + s + '-start');
+        var endEl = document.getElementById('riba-' + s + '-end');
+        if (startEl && state.project.ribaDates[s]) startEl.value = state.project.ribaDates[s].start || '';
+        if (endEl && state.project.ribaDates[s]) endEl.value = state.project.ribaDates[s].end || '';
+    });
+
+    // Re-render scope and check boxes
+    renderScopeItems();
+    state.scope.selected.forEach(id => {
+        const cb = document.querySelector('#wi-' + id + ' input[type="checkbox"]');
+        if (cb) { cb.checked = true; document.getElementById('wi-' + id).classList.add('selected'); }
+    });
+    updateTriggeredParts();
+
+    // HRB fields
+    document.getElementById('building-height').value = state.gateways.hrbHeight || '';
+    document.getElementById('building-storeys').value = state.gateways.hrbStoreys || '';
+    const typeRadio = document.querySelector('input[name="building-type"][value="' + (state.gateways.hrbType || 'none') + '"]');
+    if (typeRadio) typeRadio.checked = true;
+
+    // BC Route
+    if (state.bcRoute && state.bcRoute.chosen) {
+        const bcRadio = document.querySelector('input[name="bc-route"][value="' + state.bcRoute.chosen + '"]');
+        if (bcRadio) bcRadio.checked = true;
+    }
+
+    // Step 4: designers, allocations, appointments
+    renderStep4();
+    renderSavedAssessments();
+    goToStep(1);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+    document.getElementById('assess-date').value = new Date().toISOString().split('T')[0];
+    renderScopeItems();
+    renderSavedAssessments();
+
+    // Auto-load embedded data if this file was opened directly from an export
+    const dataEl = document.getElementById('embedded-data');
+    if (dataEl && dataEl.textContent.trim()) {
+        try {
+            const imported = JSON.parse(dataEl.textContent);
+            if (imported.state) {
+                restoreState(imported.state);
+            }
+        } catch(e) {
+            console.warn('Could not auto-load embedded data:', e.message);
+        }
+    }
+}
+
+init();
+</script>
+
+<!-- Auth + API adapter: runs AFTER the app's own scripts so it can override save/load. -->
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="api-adapter.js"></script>
+</body>
+</html>

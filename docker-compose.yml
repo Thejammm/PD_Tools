@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: pdscope
+      POSTGRES_PASSWORD: pdscope
+      POSTGRES_DB: pdscope
+    ports:
+      - "5432:5432"
+    volumes:
+      - pd_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pdscope"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://pdscope:pdscope@db:5432/pdscope
+      PORT: "3000"
+      NODE_ENV: development
+      FRONTEND_ORIGIN: http://localhost:3001
+      SESSION_SECRET: ${SESSION_SECRET:-dev-only-secret-change-me}
+    ports:
+      - "3000:3000"
+
+volumes:
+  pd_pg_data:
