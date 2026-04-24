@@ -3,7 +3,7 @@ databases:
     plan: free
     databaseName: pdscope
     user: pdscope
-
+    region: frankfurt
 services:
   - type: web
     name: pdscope-api
