@@ -7,7 +7,7 @@ export function cookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax',
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     // 7 days — matches session TTL.
     maxAge: 7 * 24 * 60 * 60 * 1000,
