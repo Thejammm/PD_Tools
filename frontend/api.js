@@ -11,7 +11,11 @@
     });
     // 401 anywhere means kick to login.
     if (res.status === 401 && !path.startsWith('/auth/login')) {
-      window.location.href = 'index.html';
+      // Avoid redirect loop when already on the login page
+      const page = window.location.pathname.split('/').pop();
+      if (page && page !== 'index.html') {
+        window.location.href = 'index.html';
+      }
       throw new Error('unauthenticated');
     }
     const text = await res.text();
